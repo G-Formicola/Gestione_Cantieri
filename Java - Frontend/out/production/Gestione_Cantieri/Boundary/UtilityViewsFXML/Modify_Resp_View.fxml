@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ChoiceBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="267.0" prefWidth="343.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="Boundary.UtilityViewsController.ModifyRespController">
+    <top>
+        <Label alignment="CENTER" contentDisplay="CENTER" prefHeight="25.0" prefWidth="376.0" text="Assegna responsabilità area cantiere" textAlignment="CENTER" wrapText="true" BorderPane.alignment="CENTER">
+            <BorderPane.margin>
+                <Insets bottom="5.0" top="5.0" />
+            </BorderPane.margin>
+            <font>
+                <Font name="Helvetica" size="16.0" />
+            </font>
+        </Label>
+    </top>
+    <bottom>
+        <AnchorPane prefHeight="43.0" prefWidth="343.0" BorderPane.alignment="CENTER">
+            <children>
+                <Button layoutX="72.0" layoutY="15.0" mnemonicParsing="false" onMouseClicked="#closeView" prefHeight="26.0" prefWidth="90.0" text="Annulla" AnchorPane.bottomAnchor="15.0" AnchorPane.topAnchor="15.0" />
+                <Button layoutX="182.0" layoutY="15.0" mnemonicParsing="false" onMouseClicked="#registraNuovoResponsabile" prefHeight="26.0" prefWidth="90.0" text="Conferma" AnchorPane.bottomAnchor="15.0" AnchorPane.topAnchor="15.0" />
+            </children>
+        </AnchorPane>
+    </bottom>
+    <center>
+        <AnchorPane BorderPane.alignment="CENTER">
+            <children>
+                <Label layoutX="11.0" layoutY="16.0" prefHeight="36.0" prefWidth="195.0" text="ID dell'area cantiere alla quale * cambiare responsabile" textAlignment="CENTER" wrapText="true" />
+                <ChoiceBox fx:id="areaChoiceBox" layoutX="221.0" layoutY="21.0" prefHeight="26.0" prefWidth="108.0" />
+                <Label layoutX="93.0" layoutY="148.0" text="I campi contrassegnati con * sono obbligatori">
+                    <font>
+                        <Font size="11.0" />
+                    </font>
+                </Label>
+                <Label layoutX="13.0" layoutY="77.0" prefHeight="42.0" prefWidth="195.0" text="ID Operaio al quale assegnare * la responsabilità dell'area" textAlignment="CENTER" wrapText="true" />
+                <ChoiceBox fx:id="operaioChoicheBox" layoutX="221.0" layoutY="85.0" prefHeight="26.0" prefWidth="108.0" />
+            </children>
+        </AnchorPane>
+    </center>
+</BorderPane>

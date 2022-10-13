@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="620.0" prefWidth="730.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="Boundary.UtilityViewsController.ReadInfoOperaioController">
+    <top>
+        <Label alignment="CENTER" contentDisplay="CENTER" prefHeight="25.0" prefWidth="500.0" text="Anagrafica Operaio" textAlignment="CENTER" wrapText="true" BorderPane.alignment="CENTER">
+            <BorderPane.margin>
+                <Insets bottom="5.0" top="10.0" />
+            </BorderPane.margin>
+            <font>
+                <Font name="Helvetica" size="20.0" />
+            </font>
+        </Label>
+    </top>
+    <bottom>
+        <AnchorPane prefHeight="43.0" prefWidth="673.0" BorderPane.alignment="CENTER">
+            <children>
+                <Button layoutX="14.0" layoutY="15.0" mnemonicParsing="false" onMouseClicked="#closeView" prefHeight="26.0" prefWidth="90.0" text="Chiudi" AnchorPane.bottomAnchor="15.0" AnchorPane.topAnchor="15.0" />
+            </children>
+        </AnchorPane>
+    </bottom>
+    <center>
+        <AnchorPane prefWidth="541.0" BorderPane.alignment="CENTER">
+            <BorderPane.margin>
+                <Insets />
+            </BorderPane.margin>
+            <children>
+                <Label layoutX="59.0" layoutY="15.0" prefHeight="40.0" prefWidth="175.0" text="Codice Identificativo dell'operaio :" textAlignment="CENTER" wrapText="true">
+                    <font>
+                        <Font size="14.0" />
+                    </font>
+                </Label>
+                <Label layoutX="94.0" layoutY="175.0" text="Data di Nascita :" />
+                <Label layoutX="96.0" layoutY="223.0" text="Codice Fiscale :" textAlignment="CENTER" />
+                <Label layoutX="125.0" layoutY="71.0" text="Nome :" textAlignment="CENTER" />
+                <Label layoutX="445.0" layoutY="70.0" text="Cognome :" textAlignment="CENTER" wrapText="true" />
+                <Label layoutX="456.0" layoutY="27.0" text="Sesso :" textAlignment="CENTER" />
+                <Label layoutX="112.0" layoutY="109.0" prefHeight="28.0" prefWidth="70.0" text="Cellulare :" textAlignment="CENTER" wrapText="true" />
+                <Label layoutX="435.0" layoutY="110.0" prefHeight="26.0" prefWidth="88.0" text="2° Cellulare :" textAlignment="CENTER" wrapText="true" />
+                <Label fx:id="idOperaio" layoutX="271.0" layoutY="27.0" prefHeight="16.0" prefWidth="42.0" text="Label" textAlignment="CENTER">
+                    <font>
+                        <Font name="Helvetica Bold" size="14.0" />
+                    </font>
+                </Label>
+                <Label fx:id="sesso" layoutX="597.0" layoutY="28.0" text="Label" textAlignment="CENTER">
+                    <font>
+                        <Font name="Helvetica Bold" size="14.0" />
+                    </font>
+                </Label>
+                <Label fx:id="cognome" layoutX="597.0" layoutY="72.0" text="Label" textAlignment="CENTER">
+                    <font>
+                        <Font name="Helvetica Bold" size="14.0" />
+                    </font>
+                </Label>
+                <Label fx:id="nome" layoutX="271.0" layoutY="72.0" text="Label" textAlignment="CENTER">
+                    <font>
+                        <Font name="Helvetica Bold" size="14.0" />
+                    </font>
+                </Label>
+                <Label fx:id="cellulare" layoutX="271.0" layoutY="115.0" text="Label" textAlignment="CENTER">
+                    <font>
+                        <Font name="Helvetica Bold" size="14.0" />
+                    </font>
+                </Label>
+                <Label fx:id="cellulare2" layoutX="597.0" layoutY="115.0" text="Label" textAlignment="CENTER">
+                    <font>
+                        <Font name="Helvetica Bold" size="14.0" />
+                    </font>
+                </Label>
+                <Label fx:id="codiceFiscale" layoutX="251.0" layoutY="216.0" prefHeight="30.0" prefWidth="190.0" text="Label">
+                    <font>
+                        <Font name="Helvetica Bold" size="14.0" />
+                    </font>
+                </Label>
+                <Label layoutX="88.0" layoutY="294.0" text="Riveste il ruolo di :" textAlignment="CENTER" wrapText="true">
+               <font>
+                  <Font size="15.0" />
+               </font></Label>
+                <Label layoutX="255.0" layoutY="344.0" prefHeight="46.0" prefWidth="220.0" text="Aree del cantiere affidate in gestione" textAlignment="CENTER" wrapText="true">
+               <font>
+                  <Font name="Helvetica" size="14.0" />
+               </font></Label>
+                <Label fx:id="ruolo" layoutX="242.0" layoutY="294.0" text="Label">
+                    <font>
+                        <Font name="Helvetica Bold" size="16.0" />
+                    </font>
+                </Label>
+            <DatePicker fx:id="data_n" disable="true" editable="false" layoutX="248.0" layoutY="171.0" />
+            <Button fx:id="modifyRuoloButton" layoutX="460.0" layoutY="286.0" mnemonicParsing="false" onMouseClicked="#modifyRuolo" prefHeight="36.0" prefWidth="155.0" text="Modifica ruolo" />
+            <ListView fx:id="areeListView" layoutX="30.0" layoutY="397.0" prefHeight="113.0" prefWidth="670.0" />
+            <Label fx:id="noAreeLabel" layoutX="277.0" layoutY="445.0" text="Nessun area cantiere trovata" />
+            </children>
+        </AnchorPane>
+    </center>
+</BorderPane>

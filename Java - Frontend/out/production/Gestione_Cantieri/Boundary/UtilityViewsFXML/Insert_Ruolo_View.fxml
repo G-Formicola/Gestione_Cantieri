@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ChoiceBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="374.0" prefWidth="416.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="Boundary.UtilityViewsController.InsertRuoloController">
+    <top>
+        <Label alignment="CENTER" contentDisplay="CENTER" prefHeight="25.0" prefWidth="376.0" text="Assegnazione di un ruolo ad un operaio" textAlignment="CENTER" wrapText="true" BorderPane.alignment="CENTER">
+            <BorderPane.margin>
+                <Insets bottom="5.0" top="5.0" />
+            </BorderPane.margin>
+            <font>
+                <Font name="Helvetica" size="20.0" />
+            </font>
+        </Label>
+    </top>
+    <bottom>
+        <AnchorPane prefHeight="43.0" prefWidth="343.0" BorderPane.alignment="CENTER">
+            <children>
+                <Button layoutX="108.0" layoutY="15.0" mnemonicParsing="false" onMouseClicked="#closeView" prefHeight="26.0" prefWidth="90.0" text="Annulla" AnchorPane.bottomAnchor="15.0" AnchorPane.topAnchor="15.0" />
+                <Button layoutX="218.0" layoutY="15.0" mnemonicParsing="false" onMouseClicked="#registraNuovoRuolo" prefHeight="26.0" prefWidth="90.0" text="Conferma" AnchorPane.bottomAnchor="15.0" AnchorPane.topAnchor="15.0" />
+            </children>
+        </AnchorPane>
+    </bottom>
+    <center>
+        <AnchorPane BorderPane.alignment="CENTER">
+            <children>
+                <Label layoutX="93.0" layoutY="22.0" text="ID Operaio *" textAlignment="CENTER" wrapText="true" />
+                <ChoiceBox fx:id="operaioChoiceBox" layoutX="208.0" layoutY="17.0" prefHeight="26.0" prefWidth="150.0" />
+                <Label layoutX="165.0" layoutY="262.0" text="I campi contrassegnati con * sono obbligatori">
+                    <font>
+                        <Font size="11.0" />
+                    </font>
+                </Label>
+                <Label layoutX="41.0" layoutY="63.0" prefHeight="34.0" prefWidth="131.0" text="ID Cantiere in cui si * svolgeranno i lavori   " textAlignment="CENTER" wrapText="true" />
+            <ChoiceBox fx:id="cantiereChoiceBox" layoutX="208.0" layoutY="67.0" prefHeight="26.0" prefWidth="150.0" />
+            <DatePicker fx:id="startDatePicker" layoutX="208.0" layoutY="117.0" prefHeight="26.0" prefWidth="150.0" />
+            <Label layoutX="43.0" layoutY="122.0" text="Data di inizio lavori *" />
+            <Label layoutX="96.0" layoutY="172.0" text="Mansione *" />
+            <Label layoutX="12.0" layoutY="222.0" text="Descrizione della mansione" />
+            <ChoiceBox fx:id="mansioneChoicheBox" layoutX="208.0" layoutY="167.0" prefWidth="150.0" />
+            <TextField fx:id="descrizioneTF" layoutX="208.0" layoutY="217.0" prefHeight="26.0" prefWidth="150.0" />
+            </children>
+        </AnchorPane>
+    </center>
+</BorderPane>
