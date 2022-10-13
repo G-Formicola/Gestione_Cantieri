@@ -1,0 +1,899 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 13.5
+-- Dumped by pg_dump version 14.1
+
+-- Started on 2022-03-24 00:16:37 CET
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+DROP DATABASE gestionecantieri_unina;
+--
+-- TOC entry 3359 (class 1262 OID 16390)
+-- Name: gestionecantieri_unina; Type: DATABASE; Schema: -; Owner: Giorgio
+--
+
+CREATE DATABASE gestionecantieri_unina WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE = 'en_US.UTF-8';
+
+
+ALTER DATABASE gestionecantieri_unina OWNER TO "Giorgio";
+
+\connect gestionecantieri_unina
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- TOC entry 213 (class 1255 OID 16682)
+-- Name: ckemailunica(); Type: FUNCTION; Schema: public; Owner: Giorgio
+--
+
+CREATE FUNCTION public.ckemailunica() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+	IF NOT EXISTS ( SELECT * 
+			   	   FROM amministratore 
+			   	  WHERE amministratore.email LIKE NEW.email  )
+	THEN 
+		IF NOT EXISTS ( SELECT *
+					   FROM capocantiere
+					   WHERE capocantiere.email LIKE NEW.email )
+		THEN
+			RETURN NEW;
+		ELSE
+			RAISE NOTICE 'Email già esistente nel database';
+			RETURN NULL;
+		END IF;
+	ELSE
+		RAISE NOTICE 'Email già esistente nel database';
+		RETURN NULL;
+	END IF;
+END
+$$;
+
+
+ALTER FUNCTION public.ckemailunica() OWNER TO "Giorgio";
+
+--
+-- TOC entry 210 (class 1255 OID 16676)
+-- Name: ckmansione(); Type: FUNCTION; Schema: public; Owner: Giorgio
+--
+
+CREATE FUNCTION public.ckmansione() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+	IF EXISTS ( SELECT * 
+			   	FROM ruolo 
+			   	WHERE (ruolo.id_lavoratore = NEW.id_operatore AND ruolo.mansione LIKE 'Operatore' AND 
+					   ruolo.id_cantierelavori = (SELECT id_cantiereappartenenza
+												  FROM area_cantiere
+												  WHERE id_area_cantiere = NEW.id_area)) )
+	THEN 
+		RETURN NEW ;
+	ELSE
+		RAISE NOTICE 'Soltanto gli operai con una mansione da operatore nel cantiere possono montare i sensori';
+		RETURN NULL;
+	END IF;
+END
+$$;
+
+
+ALTER FUNCTION public.ckmansione() OWNER TO "Giorgio";
+
+--
+-- TOC entry 212 (class 1255 OID 16674)
+-- Name: cknumsens(); Type: FUNCTION; Schema: public; Owner: Giorgio
+--
+
+CREATE FUNCTION public.cknumsens() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+	IF ( 2 > (SELECT COUNT(*) FROM montaggio_sensore JOIN area_cantiere 
+			  ON montaggio_sensore.id_area = area_cantiere.id_area_cantiere WHERE id_area_cantiere = NEW.id_area) ) 
+	THEN 
+		RETURN NEW ;
+	ELSE
+		RAISE NOTICE 'Sono presenti già due sensori montati all’interno dell’area';
+		RETURN NULL;
+	END IF;
+END
+$$;
+
+
+ALTER FUNCTION public.cknumsens() OWNER TO "Giorgio";
+
+--
+-- TOC entry 214 (class 1255 OID 16680)
+-- Name: ckruolooperaio(); Type: FUNCTION; Schema: public; Owner: Giorgio
+--
+
+CREATE FUNCTION public.ckruolooperaio() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+	IF EXISTS ( SELECT * 
+			   	   FROM ruolo 
+			   	  WHERE id_lavoratore = NEW.id_gestore AND id_cantierelavori = NEW.id_cantiereappartenenza  )
+	THEN 
+		RETURN NEW ;
+	ELSE
+		RAISE NOTICE 'Si può assegnare in gestione un area cantiere soltanto ad operai con un ruolo all’interno del cantiere a cui appartiene la zona';
+		RETURN NULL;
+	END IF;
+END
+$$;
+
+
+ALTER FUNCTION public.ckruolooperaio() OWNER TO "Giorgio";
+
+--
+-- TOC entry 211 (class 1255 OID 16678)
+-- Name: ckunicocantieregestito(); Type: FUNCTION; Schema: public; Owner: Giorgio
+--
+
+CREATE FUNCTION public.ckunicocantieregestito() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+	IF NOT EXISTS ( SELECT * 
+			   	   FROM cantiere 
+			   	  WHERE id_responsabile = NEW.id_responsabile )
+	THEN 
+		RETURN NEW ;
+	ELSE
+		RAISE NOTICE 'Si può assegnare in gestione un unico cantiere per volta';
+		RETURN NULL;
+	END IF;
+END
+$$;
+
+
+ALTER FUNCTION public.ckunicocantieregestito() OWNER TO "Giorgio";
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- TOC entry 200 (class 1259 OID 16397)
+-- Name: amministratore; Type: TABLE; Schema: public; Owner: Giorgio
+--
+
+CREATE TABLE public.amministratore (
+    nome character varying(50) NOT NULL,
+    cognome character varying(50) NOT NULL,
+    sesso character varying(1) NOT NULL,
+    data_n date NOT NULL,
+    codicefiscale character varying(16) NOT NULL,
+    cellulare character varying(15) NOT NULL,
+    cellulare2 character varying(15) DEFAULT 'Non Specificato'::character varying,
+    email character varying(50) NOT NULL,
+    pswrd character varying(100) NOT NULL,
+    id_amministratore integer NOT NULL,
+    CONSTRAINT check_cf CHECK (((codicefiscale)::text ~* '^[A-Z]{3}[A-Z]{3}[0-9]{2}[A-EHLMPR-T][0-9]{2}[A-Z][0-9]{3}[A-Z]$'::text)),
+    CONSTRAINT check_email CHECK (((email)::text ~* '^[A-Za-z0-9._%-]+@[A-Za-z0-9.-]+[.][A-Za-z]+$'::text)),
+    CONSTRAINT enumgenere CHECK (((sesso)::text = ANY ((ARRAY['M'::character varying, 'F'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.amministratore OWNER TO "Giorgio";
+
+--
+-- TOC entry 205 (class 1259 OID 16575)
+-- Name: area_cantiere; Type: TABLE; Schema: public; Owner: Giorgio
+--
+
+CREATE TABLE public.area_cantiere (
+    nome_zona character varying(50) NOT NULL,
+    descrizione character varying(50),
+    id_area_cantiere integer NOT NULL,
+    id_gestore integer NOT NULL,
+    id_cantiereappartenenza integer NOT NULL
+);
+
+
+ALTER TABLE public.area_cantiere OWNER TO "Giorgio";
+
+--
+-- TOC entry 204 (class 1259 OID 16525)
+-- Name: cantiere; Type: TABLE; Schema: public; Owner: Giorgio
+--
+
+CREATE TABLE public.cantiere (
+    titolo character varying(100) NOT NULL,
+    descrizione character varying(100) NOT NULL,
+    data_inizio date,
+    data_fine date,
+    localita character varying(100) NOT NULL,
+    id_cantiere integer NOT NULL,
+    id_creatore integer NOT NULL,
+    id_responsabile integer NOT NULL
+);
+
+
+ALTER TABLE public.cantiere OWNER TO "Giorgio";
+
+--
+-- TOC entry 201 (class 1259 OID 16407)
+-- Name: capocantiere; Type: TABLE; Schema: public; Owner: Giorgio
+--
+
+CREATE TABLE public.capocantiere (
+    nome character varying(50) NOT NULL,
+    cognome character varying(50) NOT NULL,
+    sesso character varying(1) NOT NULL,
+    data_n date NOT NULL,
+    codicefiscale character varying(16) NOT NULL,
+    cellulare character varying(15) NOT NULL,
+    cellulare2 character varying(15),
+    email character varying(50) NOT NULL,
+    pswrd character varying(100) NOT NULL,
+    id_capocantiere integer NOT NULL,
+    CONSTRAINT check_cf CHECK (((codicefiscale)::text ~* '^[A-Z]{3}[A-Z]{3}[0-9]{2}[A-EHLMPR-T][0-9]{2}[A-Z][0-9]{3}[A-Z]$'::text)),
+    CONSTRAINT check_email CHECK (((email)::text ~* '^[A-Za-z0-9._%-]+@[A-Za-z0-9.-]+[.][A-Za-z]+$'::text)),
+    CONSTRAINT enumgenere CHECK (((sesso)::text = ANY ((ARRAY['M'::character varying, 'F'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.capocantiere OWNER TO "Giorgio";
+
+--
+-- TOC entry 206 (class 1259 OID 16592)
+-- Name: montaggio_sensore; Type: TABLE; Schema: public; Owner: Giorgio
+--
+
+CREATE TABLE public.montaggio_sensore (
+    data_montaggio date NOT NULL,
+    id_montaggio integer NOT NULL,
+    id_sensore integer NOT NULL,
+    id_area integer NOT NULL,
+    id_operatore integer NOT NULL
+);
+
+
+ALTER TABLE public.montaggio_sensore OWNER TO "Giorgio";
+
+--
+-- TOC entry 202 (class 1259 OID 16417)
+-- Name: operaio; Type: TABLE; Schema: public; Owner: Giorgio
+--
+
+CREATE TABLE public.operaio (
+    nome character varying(50) NOT NULL,
+    cognome character varying(50) NOT NULL,
+    sesso character varying(1) NOT NULL,
+    data_n date NOT NULL,
+    codicefiscale character varying(16) NOT NULL,
+    cellulare character varying(15) NOT NULL,
+    cellulare2 character varying(15),
+    id_operaio integer NOT NULL,
+    CONSTRAINT check_cf CHECK (((codicefiscale)::text ~* '^[A-Z]{3}[A-Z]{3}[0-9]{2}[A-EHLMPR-T][0-9]{2}[A-Z][0-9]{3}[A-Z]$'::text)),
+    CONSTRAINT enumgenere CHECK (((sesso)::text = ANY ((ARRAY['M'::character varying, 'F'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.operaio OWNER TO "Giorgio";
+
+--
+-- TOC entry 207 (class 1259 OID 16628)
+-- Name: pk_generator; Type: SEQUENCE; Schema: public; Owner: Giorgio
+--
+
+CREATE SEQUENCE public.pk_generator
+    START WITH 1001
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.pk_generator OWNER TO "Giorgio";
+
+--
+-- TOC entry 208 (class 1259 OID 16631)
+-- Name: report_sensore; Type: TABLE; Schema: public; Owner: Giorgio
+--
+
+CREATE TABLE public.report_sensore (
+    data_rilievo date NOT NULL,
+    ore_rilievo time without time zone NOT NULL,
+    rilievo integer NOT NULL,
+    id_report_sensore integer NOT NULL,
+    id_sensmontato integer NOT NULL,
+    id_area_rilievo integer NOT NULL
+);
+
+
+ALTER TABLE public.report_sensore OWNER TO "Giorgio";
+
+--
+-- TOC entry 209 (class 1259 OID 16646)
+-- Name: ruolo; Type: TABLE; Schema: public; Owner: Giorgio
+--
+
+CREATE TABLE public.ruolo (
+    mansione character varying(30) NOT NULL,
+    descrizione character varying(50),
+    data_inizio date NOT NULL,
+    id_ruolo integer NOT NULL,
+    id_lavoratore integer NOT NULL,
+    id_cantierelavori integer NOT NULL,
+    CONSTRAINT enumruolo CHECK (((mansione)::text = ANY ((ARRAY['Operatore'::character varying, 'Carpentiere'::character varying, 'Elettricista'::character varying, 'Ingegnere'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.ruolo OWNER TO "Giorgio";
+
+--
+-- TOC entry 203 (class 1259 OID 16449)
+-- Name: sensore; Type: TABLE; Schema: public; Owner: Giorgio
+--
+
+CREATE TABLE public.sensore (
+    id_sensore integer NOT NULL,
+    tipo character varying(20) NOT NULL,
+    soglia integer NOT NULL,
+    CONSTRAINT enumsenstype CHECK (((tipo)::text = ANY ((ARRAY['Sensore_Rumore'::character varying, 'Sensore_Gas'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.sensore OWNER TO "Giorgio";
+
+--
+-- TOC entry 3344 (class 0 OID 16397)
+-- Dependencies: 200
+-- Data for Name: amministratore; Type: TABLE DATA; Schema: public; Owner: Giorgio
+--
+
+INSERT INTO public.amministratore VALUES ('Gumball', 'Watterson', 'M', '1997-07-19', 'WTSGMB97L19L259I', '3425757423', '3483839518', 'gumbag@elmore.com', 'Darwin', 1026);
+INSERT INTO public.amministratore VALUES ('admin', 'admin', 'M', '2022-01-01', 'ADMADM97L19L259I', '0810000000', '', 'admin@email.com', 'admin', 1060);
+
+
+--
+-- TOC entry 3349 (class 0 OID 16575)
+-- Dependencies: 205
+-- Data for Name: area_cantiere; Type: TABLE DATA; Schema: public; Owner: Giorgio
+--
+
+INSERT INTO public.area_cantiere VALUES ('Ingresso stazione', '', 1132, 1064, 1034);
+INSERT INTO public.area_cantiere VALUES ('Tornelli di accesso ai binari', 'Sensore magnetico biglietti/abbonamenti', 1133, 1062, 1034);
+INSERT INTO public.area_cantiere VALUES ('Binari', '', 1134, 1063, 1034);
+INSERT INTO public.area_cantiere VALUES ('Cucina', '', 1142, 1067, 1105);
+INSERT INTO public.area_cantiere VALUES ('Uffici', '', 1143, 1068, 1105);
+INSERT INTO public.area_cantiere VALUES ('Parcheggio esterno', '', 1144, 1069, 1105);
+INSERT INTO public.area_cantiere VALUES ('Ingressi', '', 1149, 1073, 1089);
+INSERT INTO public.area_cantiere VALUES ('Angolo ristoro', '', 1150, 1077, 1089);
+INSERT INTO public.area_cantiere VALUES ('Platea', '', 1151, 1073, 1089);
+INSERT INTO public.area_cantiere VALUES ('Servizi igienici', '', 1152, 1076, 1089);
+INSERT INTO public.area_cantiere VALUES ('Sala principale', '', 1158, 1080, 1090);
+INSERT INTO public.area_cantiere VALUES ('Sala attrezzi', '', 1159, 1079, 1090);
+INSERT INTO public.area_cantiere VALUES ('Bagno', '', 1160, 1081, 1090);
+INSERT INTO public.area_cantiere VALUES ('Piste', '', 1167, 1087, 1091);
+INSERT INTO public.area_cantiere VALUES ('Cassa', '', 1168, 1088, 1091);
+INSERT INTO public.area_cantiere VALUES ('Bagni pubblici', '', 1169, 1086, 1091);
+
+
+--
+-- TOC entry 3348 (class 0 OID 16525)
+-- Dependencies: 204
+-- Data for Name: cantiere; Type: TABLE DATA; Schema: public; Owner: Giorgio
+--
+
+INSERT INTO public.cantiere VALUES ('Elmore Railway', 'Ferrovia di elmore ', '2022-03-08', NULL, 'Elmore', 1034, 1026, 1028);
+INSERT INTO public.cantiere VALUES ('Hogwarts Stadium', 'Stadio', '2022-07-12', NULL, 'Hogwarts', 1089, 1026, 1072);
+INSERT INTO public.cantiere VALUES ('NYC PsychoGym', 'Palestra privata', '2022-09-20', NULL, 'New York City, NY, Stati Uniti', 1090, 1026, 1078);
+INSERT INTO public.cantiere VALUES ('Dude''s Bowling', 'Struttura con piste da bowling', '2022-03-17', NULL, 'Los Angeles, CA, Stati Uniti', 1091, 1026, 1085);
+INSERT INTO public.cantiere VALUES ('Dunder Mifflin Inc.', 'Edificio Aziendale', '2022-03-24', NULL, 'Scranton, PA, Stati Uniti', 1105, 1026, 1061);
+
+
+--
+-- TOC entry 3345 (class 0 OID 16407)
+-- Dependencies: 201
+-- Data for Name: capocantiere; Type: TABLE DATA; Schema: public; Owner: Giorgio
+--
+
+INSERT INTO public.capocantiere VALUES ('Darwin', 'Watterson', 'F', '2000-03-08', 'DRWWTS00L08M259L', '3456789876', '', 'darwin@elmore.com', 'darwin00', 1028);
+INSERT INTO public.capocantiere VALUES ('Michael', 'Scott', 'M', '1972-04-12', 'MCLSCT97L19L259I', '3473667422', '', 'michaelgscott@gmail.com', 'michael', 1061);
+INSERT INTO public.capocantiere VALUES ('Newton Artemis', 'Scamander', 'M', '1987-05-06', 'NWTSMR97L19L259I', '3624874122', '', 'NewtScamander@gmail.com', 'Newton', 1072);
+INSERT INTO public.capocantiere VALUES ('Patrick', 'Bateman', 'M', '1966-05-18', 'PTKBTM97L19L259I', '8452275875', '', 'PatrickBateman@gmail.com', 'Patrick', 1078);
+INSERT INTO public.capocantiere VALUES ('Jeffrey', 'Lebowski', 'M', '1976-03-05', 'JFYLWS97L19L259I', '7689924361', '', 'JeffreyLebowski@drugo.com', 'Jeffrey', 1085);
+
+
+--
+-- TOC entry 3350 (class 0 OID 16592)
+-- Dependencies: 206
+-- Data for Name: montaggio_sensore; Type: TABLE DATA; Schema: public; Owner: Giorgio
+--
+
+INSERT INTO public.montaggio_sensore VALUES ('2022-03-23', 1139, 1098, 1132, 1066);
+INSERT INTO public.montaggio_sensore VALUES ('2022-03-31', 1140, 1094, 1133, 1066);
+INSERT INTO public.montaggio_sensore VALUES ('2022-03-31', 1141, 1094, 1134, 1066);
+INSERT INTO public.montaggio_sensore VALUES ('2022-04-01', 1145, 1095, 1142, 1068);
+INSERT INTO public.montaggio_sensore VALUES ('2022-04-01', 1146, 1099, 1142, 1068);
+INSERT INTO public.montaggio_sensore VALUES ('2022-04-01', 1147, 1097, 1143, 1068);
+INSERT INTO public.montaggio_sensore VALUES ('2022-04-01', 1148, 1094, 1144, 1068);
+INSERT INTO public.montaggio_sensore VALUES ('2022-07-20', 1153, 1095, 1149, 1076);
+INSERT INTO public.montaggio_sensore VALUES ('2022-07-20', 1154, 1099, 1149, 1076);
+INSERT INTO public.montaggio_sensore VALUES ('2022-07-20', 1155, 1094, 1150, 1076);
+INSERT INTO public.montaggio_sensore VALUES ('2022-07-20', 1156, 1098, 1151, 1076);
+INSERT INTO public.montaggio_sensore VALUES ('2022-07-20', 1157, 1097, 1152, 1076);
+INSERT INTO public.montaggio_sensore VALUES ('2022-10-20', 1161, 1094, 1158, 1082);
+INSERT INTO public.montaggio_sensore VALUES ('2022-10-20', 1162, 1098, 1158, 1082);
+INSERT INTO public.montaggio_sensore VALUES ('2022-10-21', 1163, 1092, 1159, 1082);
+INSERT INTO public.montaggio_sensore VALUES ('2022-10-21', 1164, 1097, 1159, 1082);
+INSERT INTO public.montaggio_sensore VALUES ('2022-09-30', 1165, 1094, 1160, 1082);
+INSERT INTO public.montaggio_sensore VALUES ('2022-09-30', 1166, 1093, 1160, 1082);
+INSERT INTO public.montaggio_sensore VALUES ('2022-03-31', 1170, 1096, 1167, 1074);
+INSERT INTO public.montaggio_sensore VALUES ('2022-03-31', 1171, 1096, 1167, 1074);
+INSERT INTO public.montaggio_sensore VALUES ('2022-04-28', 1172, 1098, 1168, 1074);
+INSERT INTO public.montaggio_sensore VALUES ('2022-04-28', 1173, 1098, 1168, 1074);
+INSERT INTO public.montaggio_sensore VALUES ('2022-04-13', 1174, 1092, 1169, 1074);
+INSERT INTO public.montaggio_sensore VALUES ('2022-04-13', 1175, 1096, 1169, 1074);
+INSERT INTO public.montaggio_sensore VALUES ('2022-03-25', 1176, 1093, 1152, 1076);
+INSERT INTO public.montaggio_sensore VALUES ('2022-03-27', 1177, 1099, 1151, 1076);
+INSERT INTO public.montaggio_sensore VALUES ('2022-03-31', 1178, 1093, 1150, 1076);
+INSERT INTO public.montaggio_sensore VALUES ('2022-04-10', 1179, 1094, 1144, 1068);
+INSERT INTO public.montaggio_sensore VALUES ('2022-04-08', 1180, 1098, 1143, 1068);
+INSERT INTO public.montaggio_sensore VALUES ('2022-04-07', 1181, 1094, 1134, 1066);
+INSERT INTO public.montaggio_sensore VALUES ('2022-06-23', 1182, 1096, 1133, 1066);
+INSERT INTO public.montaggio_sensore VALUES ('2022-04-01', 1183, 1096, 1132, 1066);
+
+
+--
+-- TOC entry 3346 (class 0 OID 16417)
+-- Dependencies: 202
+-- Data for Name: operaio; Type: TABLE DATA; Schema: public; Owner: Giorgio
+--
+
+INSERT INTO public.operaio VALUES ('Anais', 'Watterson', 'F', '1986-05-24', 'ANSWTS97L19L259I', '3334864117', '', 1062);
+INSERT INTO public.operaio VALUES ('Richard', 'Watterson', 'M', '1966-01-30', 'RCDWTS97L19L259I', '3285037413', '', 1063);
+INSERT INTO public.operaio VALUES ('Nicole', 'Watterson', 'F', '1994-03-15', 'NCLWTS97L19L259I', '3667454216', '', 1064);
+INSERT INTO public.operaio VALUES ('Tobias', 'Wilson', 'M', '1989-10-17', 'TBSWSN97L19L259I', '3657489206', '', 1065);
+INSERT INTO public.operaio VALUES ('Sally', 'Gator', 'F', '1983-08-25', 'SLYGTR97L19L259I', '5467274896', '', 1066);
+INSERT INTO public.operaio VALUES ('Dwight K.', 'Schrute', 'M', '1986-04-15', 'DWTSRT97L19L259I', '3364896251', '', 1067);
+INSERT INTO public.operaio VALUES ('Jim', 'Halpert', 'M', '1987-07-17', 'JIMHPT97L19L259I', '3295643213', '', 1068);
+INSERT INTO public.operaio VALUES ('Pamela', 'Beesly', 'F', '1990-08-04', 'PMLBSY97L19L259I', '3664879062', '', 1069);
+INSERT INTO public.operaio VALUES ('Andrew', 'Bernard', 'M', '1982-02-23', 'NDWBND97L19L259I', '3264523116', '', 1070);
+INSERT INTO public.operaio VALUES ('Kevin', 'Malone', 'M', '1986-03-20', 'KVNMLN97L19L259I', '3264861117', '', 1071);
+INSERT INTO public.operaio VALUES ('Jacob', 'Kowalski', 'M', '1985-11-22', 'JCBKWS97L19L259I', '5234867893', '', 1073);
+INSERT INTO public.operaio VALUES ('Porpentina', 'Goldstein', 'F', '1988-06-27', 'PTNGDT97L19L259I', '6237411653', '', 1074);
+INSERT INTO public.operaio VALUES ('Gellert', 'Grindelwald', 'M', '1973-12-01', 'GLTGDW97L19L259I', '5837583622', '', 1075);
+INSERT INTO public.operaio VALUES ('Queenie', 'Goldstein', 'F', '1990-03-09', 'QNEGDT97L19L259I', '6472385644', '', 1076);
+INSERT INTO public.operaio VALUES ('Percival', 'Graves', 'M', '1985-08-22', 'PCVGVS97L19L259I', '64728836422', '', 1077);
+INSERT INTO public.operaio VALUES ('Paul', 'Allen', 'M', '1977-10-19', 'PALLLN97L19L259I', '5387794622', '', 1079);
+INSERT INTO public.operaio VALUES ('Donald', 'Kimball', 'M', '1974-09-27', 'DNDKMB97L19L259I', '3177743669', '', 1080);
+INSERT INTO public.operaio VALUES ('Luis', 'Carruthers', 'M', '1984-04-25', 'LISCTS97L19L259I', '4129562960', '', 1081);
+INSERT INTO public.operaio VALUES ('Harold', 'Carnes', 'M', '1969-01-13', 'HRDCNS97L19L259I', '9783551647', '', 1082);
+INSERT INTO public.operaio VALUES ('Marcus', 'Halberstram', 'M', '1973-06-09', 'MCSHBR97L19L259I', '64251173889', '', 1083);
+INSERT INTO public.operaio VALUES ('Walter', 'Sobchak', 'M', '1974-08-05', 'WTRSCK97L19L259I', '8623661547', '', 1086);
+INSERT INTO public.operaio VALUES ('Maude', 'Lebowski', 'F', '1978-08-10', 'MUDLBS97L19L259I', '5198867355', '', 1087);
+INSERT INTO public.operaio VALUES ('Theodore Donald', 'Kerabastos', 'M', '1986-02-23', 'TDRKBS97L19L259I', '8526618599', '', 1088);
+
+
+--
+-- TOC entry 3352 (class 0 OID 16631)
+-- Dependencies: 208
+-- Data for Name: report_sensore; Type: TABLE DATA; Schema: public; Owner: Giorgio
+--
+
+INSERT INTO public.report_sensore VALUES ('2023-01-12', '14:12:24', 35, 1208, 1139, 1132);
+INSERT INTO public.report_sensore VALUES ('2022-11-25', '19:16:34', 50, 1209, 1183, 1132);
+INSERT INTO public.report_sensore VALUES ('2023-02-15', '19:16:36', 36, 1210, 1140, 1133);
+INSERT INTO public.report_sensore VALUES ('2023-04-13', '18:13:32', 48, 1211, 1182, 1133);
+INSERT INTO public.report_sensore VALUES ('2023-01-03', '21:08:20', 37, 1212, 1141, 1134);
+INSERT INTO public.report_sensore VALUES ('2022-12-14', '10:45:14', 43, 1213, 1181, 1134);
+INSERT INTO public.report_sensore VALUES ('2022-11-24', '10:23:07', 16, 1214, 1145, 1142);
+INSERT INTO public.report_sensore VALUES ('2023-05-16', '10:34:48', 8, 1215, 1146, 1142);
+INSERT INTO public.report_sensore VALUES ('2023-02-25', '23:16:44', 21, 1216, 1147, 1143);
+INSERT INTO public.report_sensore VALUES ('2023-01-19', '23:34:42', 38, 1217, 1180, 1143);
+INSERT INTO public.report_sensore VALUES ('2023-07-04', '10:37:57', 47, 1218, 1148, 1144);
+INSERT INTO public.report_sensore VALUES ('2023-05-29', '23:29:44', 42, 1219, 1179, 1144);
+INSERT INTO public.report_sensore VALUES ('2023-07-17', '16:36:36', 12, 1220, 1153, 1149);
+INSERT INTO public.report_sensore VALUES ('2023-09-22', '09:44:21', 10, 1221, 1154, 1149);
+INSERT INTO public.report_sensore VALUES ('2023-02-03', '14:53:33', 41, 1222, 1155, 1150);
+INSERT INTO public.report_sensore VALUES ('2025-06-03', '16:55:44', 18, 1223, 1178, 1150);
+INSERT INTO public.report_sensore VALUES ('2023-06-28', '18:35:24', 38, 1224, 1156, 1151);
+INSERT INTO public.report_sensore VALUES ('2023-04-26', '23:12:41', 8, 1225, 1177, 1151);
+INSERT INTO public.report_sensore VALUES ('2022-12-06', '21:36:29', 23, 1226, 1157, 1152);
+INSERT INTO public.report_sensore VALUES ('2022-11-07', '13:22:36', 26, 1227, 1176, 1152);
+INSERT INTO public.report_sensore VALUES ('2022-10-20', '12:35:54', 50, 1228, 1161, 1158);
+INSERT INTO public.report_sensore VALUES ('2023-03-23', '18:32:08', 43, 1229, 1162, 1158);
+INSERT INTO public.report_sensore VALUES ('2022-12-14', '14:31:21', 4, 1230, 1163, 1159);
+INSERT INTO public.report_sensore VALUES ('2023-01-04', '11:25:44', 9, 1231, 1164, 1159);
+INSERT INTO public.report_sensore VALUES ('2022-12-03', '17:07:16', 6, 1232, 1165, 1160);
+INSERT INTO public.report_sensore VALUES ('2023-03-18', '18:05:45', 10, 1233, 1166, 1160);
+INSERT INTO public.report_sensore VALUES ('2023-04-29', '23:08:27', 15, 1234, 1170, 1167);
+INSERT INTO public.report_sensore VALUES ('2023-05-31', '16:07:47', 3, 1235, 1171, 1167);
+INSERT INTO public.report_sensore VALUES ('2023-06-11', '07:34:32', 13, 1236, 1172, 1168);
+INSERT INTO public.report_sensore VALUES ('2023-07-26', '22:17:45', 5, 1237, 1173, 1168);
+INSERT INTO public.report_sensore VALUES ('2023-09-13', '19:25:42', 10, 1238, 1174, 1169);
+INSERT INTO public.report_sensore VALUES ('2023-01-28', '07:15:20', 6, 1239, 1175, 1169);
+
+
+--
+-- TOC entry 3353 (class 0 OID 16646)
+-- Dependencies: 209
+-- Data for Name: ruolo; Type: TABLE DATA; Schema: public; Owner: Giorgio
+--
+
+INSERT INTO public.ruolo VALUES ('Ingegnere', 'Progetti', '2022-03-08', 1100, 1062, 1034);
+INSERT INTO public.ruolo VALUES ('Carpentiere', 'Binari', '2022-03-08', 1101, 1063, 1034);
+INSERT INTO public.ruolo VALUES ('Ingegnere', 'Progetti', '2022-03-08', 1102, 1064, 1034);
+INSERT INTO public.ruolo VALUES ('Elettricista', 'Cavi', '2022-03-08', 1103, 1065, 1034);
+INSERT INTO public.ruolo VALUES ('Operatore', 'Collaudi', '2022-03-08', 1104, 1066, 1034);
+INSERT INTO public.ruolo VALUES ('Ingegnere', 'Progetti', '2022-03-22', 1106, 1067, 1105);
+INSERT INTO public.ruolo VALUES ('Operatore', 'Supervisione e collaudi', '2022-03-22', 1107, 1068, 1105);
+INSERT INTO public.ruolo VALUES ('Elettricista', 'Illuminazioni e strumenti', '2022-03-30', 1108, 1069, 1105);
+INSERT INTO public.ruolo VALUES ('Elettricista', 'Illuminazione e strumenti', '2022-03-30', 1109, 1070, 1105);
+INSERT INTO public.ruolo VALUES ('Carpentiere', 'Pareti e soffitti', '2022-03-25', 1110, 1071, 1105);
+INSERT INTO public.ruolo VALUES ('Ingegnere', 'Progetti', '2022-07-12', 1111, 1073, 1089);
+INSERT INTO public.ruolo VALUES ('Carpentiere', 'Fondamenta', '2022-07-12', 1112, 1074, 1089);
+INSERT INTO public.ruolo VALUES ('Carpentiere', 'Struttura', '2022-07-12', 1113, 1075, 1089);
+INSERT INTO public.ruolo VALUES ('Operatore', 'Collaudi e report', '2022-09-14', 1114, 1076, 1089);
+INSERT INTO public.ruolo VALUES ('Elettricista', 'Illuminazione', '2022-07-20', 1115, 1077, 1089);
+INSERT INTO public.ruolo VALUES ('Ingegnere', 'Progetti', '2022-09-20', 1116, 1079, 1090);
+INSERT INTO public.ruolo VALUES ('Carpentiere', 'Ampliamento area', '2022-09-20', 1117, 1080, 1090);
+INSERT INTO public.ruolo VALUES ('Carpentiere', 'Muri divisori', '2022-09-20', 1118, 1081, 1090);
+INSERT INTO public.ruolo VALUES ('Operatore', 'Ispezioni', '2022-09-28', 1119, 1082, 1090);
+INSERT INTO public.ruolo VALUES ('Elettricista', 'Illuminazione', '2022-09-28', 1120, 1083, 1090);
+INSERT INTO public.ruolo VALUES ('Ingegnere', 'Pista da bowling', '2022-03-17', 1121, 1086, 1091);
+INSERT INTO public.ruolo VALUES ('Ingegnere', 'Pista da bowling', '2022-03-17', 1122, 1087, 1091);
+INSERT INTO public.ruolo VALUES ('Carpentiere', 'Lavori', '2022-03-21', 1123, 1088, 1091);
+INSERT INTO public.ruolo VALUES ('Carpentiere', 'Lavori', '2022-03-21', 1124, 1077, 1091);
+INSERT INTO public.ruolo VALUES ('Elettricista', 'Illuminazione', '2022-04-22', 1125, 1065, 1091);
+INSERT INTO public.ruolo VALUES ('Operatore', 'Pulizie e collaudi', '2022-04-28', 1126, 1074, 1091);
+
+
+--
+-- TOC entry 3347 (class 0 OID 16449)
+-- Dependencies: 203
+-- Data for Name: sensore; Type: TABLE DATA; Schema: public; Owner: Giorgio
+--
+
+INSERT INTO public.sensore VALUES (1092, 'Sensore_Rumore', 20);
+INSERT INTO public.sensore VALUES (1093, 'Sensore_Rumore', 15);
+INSERT INTO public.sensore VALUES (1094, 'Sensore_Rumore', 32);
+INSERT INTO public.sensore VALUES (1095, 'Sensore_Gas', 10);
+INSERT INTO public.sensore VALUES (1096, 'Sensore_Gas', 46);
+INSERT INTO public.sensore VALUES (1097, 'Sensore_Gas', 16);
+INSERT INTO public.sensore VALUES (1098, 'Sensore_Gas', 34);
+INSERT INTO public.sensore VALUES (1099, 'Sensore_Rumore', 6);
+
+
+--
+-- TOC entry 3360 (class 0 OID 0)
+-- Dependencies: 207
+-- Name: pk_generator; Type: SEQUENCE SET; Schema: public; Owner: Giorgio
+--
+
+SELECT pg_catalog.setval('public.pk_generator', 1239, true);
+
+
+--
+-- TOC entry 3164 (class 2606 OID 16402)
+-- Name: amministratore amministratore_pk; Type: CONSTRAINT; Schema: public; Owner: Giorgio
+--
+
+ALTER TABLE ONLY public.amministratore
+    ADD CONSTRAINT amministratore_pk PRIMARY KEY (id_amministratore);
+
+
+--
+-- TOC entry 3186 (class 2606 OID 16579)
+-- Name: area_cantiere area_cantiere_pk; Type: CONSTRAINT; Schema: public; Owner: Giorgio
+--
+
+ALTER TABLE ONLY public.area_cantiere
+    ADD CONSTRAINT area_cantiere_pk PRIMARY KEY (id_area_cantiere);
+
+
+--
+-- TOC entry 3182 (class 2606 OID 16529)
+-- Name: cantiere cantiere_pk; Type: CONSTRAINT; Schema: public; Owner: Giorgio
+--
+
+ALTER TABLE ONLY public.cantiere
+    ADD CONSTRAINT cantiere_pk PRIMARY KEY (id_cantiere);
+
+
+--
+-- TOC entry 3170 (class 2606 OID 16412)
+-- Name: capocantiere capocantiere_pk; Type: CONSTRAINT; Schema: public; Owner: Giorgio
+--
+
+ALTER TABLE ONLY public.capocantiere
+    ADD CONSTRAINT capocantiere_pk PRIMARY KEY (id_capocantiere);
+
+
+--
+-- TOC entry 3166 (class 2606 OID 16406)
+-- Name: amministratore cf_amm; Type: CONSTRAINT; Schema: public; Owner: Giorgio
+--
+
+ALTER TABLE ONLY public.amministratore
+    ADD CONSTRAINT cf_amm UNIQUE (codicefiscale);
+
+
+--
+-- TOC entry 3172 (class 2606 OID 16416)
+-- Name: capocantiere cf_cc; Type: CONSTRAINT; Schema: public; Owner: Giorgio
+--
+
+ALTER TABLE ONLY public.capocantiere
+    ADD CONSTRAINT cf_cc UNIQUE (codicefiscale);
+
+
+--
+-- TOC entry 3176 (class 2606 OID 16424)
+-- Name: operaio cf_op; Type: CONSTRAINT; Schema: public; Owner: Giorgio
+--
+
+ALTER TABLE ONLY public.operaio
+    ADD CONSTRAINT cf_op UNIQUE (codicefiscale);
+
+
+--
+-- TOC entry 3168 (class 2606 OID 16404)
+-- Name: amministratore email_amm; Type: CONSTRAINT; Schema: public; Owner: Giorgio
+--
+
+ALTER TABLE ONLY public.amministratore
+    ADD CONSTRAINT email_amm UNIQUE (email);
+
+
+--
+-- TOC entry 3174 (class 2606 OID 16414)
+-- Name: capocantiere email_cc; Type: CONSTRAINT; Schema: public; Owner: Giorgio
+--
+
+ALTER TABLE ONLY public.capocantiere
+    ADD CONSTRAINT email_cc UNIQUE (email);
+
+
+--
+-- TOC entry 3190 (class 2606 OID 16596)
+-- Name: montaggio_sensore montaggio_sensore_pk; Type: CONSTRAINT; Schema: public; Owner: Giorgio
+--
+
+ALTER TABLE ONLY public.montaggio_sensore
+    ADD CONSTRAINT montaggio_sensore_pk PRIMARY KEY (id_montaggio);
+
+
+--
+-- TOC entry 3188 (class 2606 OID 16581)
+-- Name: area_cantiere nomeunico; Type: CONSTRAINT; Schema: public; Owner: Giorgio
+--
+
+ALTER TABLE ONLY public.area_cantiere
+    ADD CONSTRAINT nomeunico UNIQUE (nome_zona);
+
+
+--
+-- TOC entry 3178 (class 2606 OID 16422)
+-- Name: operaio operaio_pk; Type: CONSTRAINT; Schema: public; Owner: Giorgio
+--
+
+ALTER TABLE ONLY public.operaio
+    ADD CONSTRAINT operaio_pk PRIMARY KEY (id_operaio);
+
+
+--
+-- TOC entry 3192 (class 2606 OID 16635)
+-- Name: report_sensore report_sensore_pk; Type: CONSTRAINT; Schema: public; Owner: Giorgio
+--
+
+ALTER TABLE ONLY public.report_sensore
+    ADD CONSTRAINT report_sensore_pk PRIMARY KEY (id_report_sensore);
+
+
+--
+-- TOC entry 3194 (class 2606 OID 16651)
+-- Name: ruolo ruolo_pk; Type: CONSTRAINT; Schema: public; Owner: Giorgio
+--
+
+ALTER TABLE ONLY public.ruolo
+    ADD CONSTRAINT ruolo_pk PRIMARY KEY (id_ruolo);
+
+
+--
+-- TOC entry 3180 (class 2606 OID 16454)
+-- Name: sensore sensore_pk; Type: CONSTRAINT; Schema: public; Owner: Giorgio
+--
+
+ALTER TABLE ONLY public.sensore
+    ADD CONSTRAINT sensore_pk PRIMARY KEY (id_sensore);
+
+
+--
+-- TOC entry 3196 (class 2606 OID 16653)
+-- Name: ruolo unicoruolo; Type: CONSTRAINT; Schema: public; Owner: Giorgio
+--
+
+ALTER TABLE ONLY public.ruolo
+    ADD CONSTRAINT unicoruolo UNIQUE (id_lavoratore, id_cantierelavori);
+
+
+--
+-- TOC entry 3184 (class 2606 OID 16531)
+-- Name: cantiere utitolo; Type: CONSTRAINT; Schema: public; Owner: Giorgio
+--
+
+ALTER TABLE ONLY public.cantiere
+    ADD CONSTRAINT utitolo UNIQUE (titolo);
+
+
+--
+-- TOC entry 3208 (class 2620 OID 16684)
+-- Name: amministratore triggercontrollaemailamm; Type: TRIGGER; Schema: public; Owner: Giorgio
+--
+
+CREATE TRIGGER triggercontrollaemailamm BEFORE INSERT OR UPDATE OF email ON public.amministratore FOR EACH ROW EXECUTE FUNCTION public.ckemailunica();
+
+
+--
+-- TOC entry 3209 (class 2620 OID 16683)
+-- Name: capocantiere triggercontrollaemailcc; Type: TRIGGER; Schema: public; Owner: Giorgio
+--
+
+CREATE TRIGGER triggercontrollaemailcc BEFORE INSERT OR UPDATE OF email ON public.capocantiere FOR EACH ROW EXECUTE FUNCTION public.ckemailunica();
+
+
+--
+-- TOC entry 3212 (class 2620 OID 16677)
+-- Name: montaggio_sensore triggercontrollamansione; Type: TRIGGER; Schema: public; Owner: Giorgio
+--
+
+CREATE TRIGGER triggercontrollamansione BEFORE INSERT ON public.montaggio_sensore FOR EACH ROW EXECUTE FUNCTION public.ckmansione();
+
+
+--
+-- TOC entry 3211 (class 2620 OID 16681)
+-- Name: area_cantiere triggercontrollaruolooperaio; Type: TRIGGER; Schema: public; Owner: Giorgio
+--
+
+CREATE TRIGGER triggercontrollaruolooperaio BEFORE INSERT OR UPDATE OF id_gestore ON public.area_cantiere FOR EACH ROW EXECUTE FUNCTION public.ckruolooperaio();
+
+
+--
+-- TOC entry 3213 (class 2620 OID 16675)
+-- Name: montaggio_sensore triggernumerosensorimontati; Type: TRIGGER; Schema: public; Owner: Giorgio
+--
+
+CREATE TRIGGER triggernumerosensorimontati BEFORE INSERT ON public.montaggio_sensore FOR EACH ROW EXECUTE FUNCTION public.cknumsens();
+
+
+--
+-- TOC entry 3210 (class 2620 OID 16679)
+-- Name: cantiere triggersingolocantiereingestione; Type: TRIGGER; Schema: public; Owner: Giorgio
+--
+
+CREATE TRIGGER triggersingolocantiereingestione BEFORE INSERT OR UPDATE OF id_responsabile ON public.cantiere FOR EACH ROW EXECUTE FUNCTION public.ckunicocantieregestito();
+
+
+--
+-- TOC entry 3199 (class 2606 OID 16582)
+-- Name: area_cantiere area_cantiere_fk1; Type: FK CONSTRAINT; Schema: public; Owner: Giorgio
+--
+
+ALTER TABLE ONLY public.area_cantiere
+    ADD CONSTRAINT area_cantiere_fk1 FOREIGN KEY (id_gestore) REFERENCES public.operaio(id_operaio) ON UPDATE CASCADE;
+
+
+--
+-- TOC entry 3200 (class 2606 OID 16587)
+-- Name: area_cantiere area_cantiere_fk2; Type: FK CONSTRAINT; Schema: public; Owner: Giorgio
+--
+
+ALTER TABLE ONLY public.area_cantiere
+    ADD CONSTRAINT area_cantiere_fk2 FOREIGN KEY (id_cantiereappartenenza) REFERENCES public.cantiere(id_cantiere) ON UPDATE CASCADE;
+
+
+--
+-- TOC entry 3197 (class 2606 OID 16532)
+-- Name: cantiere cantiere_fk1; Type: FK CONSTRAINT; Schema: public; Owner: Giorgio
+--
+
+ALTER TABLE ONLY public.cantiere
+    ADD CONSTRAINT cantiere_fk1 FOREIGN KEY (id_creatore) REFERENCES public.amministratore(id_amministratore);
+
+
+--
+-- TOC entry 3198 (class 2606 OID 16537)
+-- Name: cantiere cantiere_fk2; Type: FK CONSTRAINT; Schema: public; Owner: Giorgio
+--
+
+ALTER TABLE ONLY public.cantiere
+    ADD CONSTRAINT cantiere_fk2 FOREIGN KEY (id_responsabile) REFERENCES public.capocantiere(id_capocantiere);
+
+
+--
+-- TOC entry 3201 (class 2606 OID 16597)
+-- Name: montaggio_sensore montaggio_sensore_fk1; Type: FK CONSTRAINT; Schema: public; Owner: Giorgio
+--
+
+ALTER TABLE ONLY public.montaggio_sensore
+    ADD CONSTRAINT montaggio_sensore_fk1 FOREIGN KEY (id_sensore) REFERENCES public.sensore(id_sensore) ON UPDATE CASCADE;
+
+
+--
+-- TOC entry 3202 (class 2606 OID 16602)
+-- Name: montaggio_sensore montaggio_sensore_fk2; Type: FK CONSTRAINT; Schema: public; Owner: Giorgio
+--
+
+ALTER TABLE ONLY public.montaggio_sensore
+    ADD CONSTRAINT montaggio_sensore_fk2 FOREIGN KEY (id_area) REFERENCES public.area_cantiere(id_area_cantiere) ON UPDATE CASCADE;
+
+
+--
+-- TOC entry 3203 (class 2606 OID 16607)
+-- Name: montaggio_sensore montaggio_sensore_fk3; Type: FK CONSTRAINT; Schema: public; Owner: Giorgio
+--
+
+ALTER TABLE ONLY public.montaggio_sensore
+    ADD CONSTRAINT montaggio_sensore_fk3 FOREIGN KEY (id_operatore) REFERENCES public.operaio(id_operaio) ON UPDATE CASCADE;
+
+
+--
+-- TOC entry 3204 (class 2606 OID 16636)
+-- Name: report_sensore report_sensore_fk1; Type: FK CONSTRAINT; Schema: public; Owner: Giorgio
+--
+
+ALTER TABLE ONLY public.report_sensore
+    ADD CONSTRAINT report_sensore_fk1 FOREIGN KEY (id_sensmontato) REFERENCES public.montaggio_sensore(id_montaggio) ON UPDATE CASCADE;
+
+
+--
+-- TOC entry 3205 (class 2606 OID 16641)
+-- Name: report_sensore report_sensore_fk2; Type: FK CONSTRAINT; Schema: public; Owner: Giorgio
+--
+
+ALTER TABLE ONLY public.report_sensore
+    ADD CONSTRAINT report_sensore_fk2 FOREIGN KEY (id_area_rilievo) REFERENCES public.area_cantiere(id_area_cantiere) ON UPDATE CASCADE;
+
+
+--
+-- TOC entry 3206 (class 2606 OID 16654)
+-- Name: ruolo ruolo_fk1; Type: FK CONSTRAINT; Schema: public; Owner: Giorgio
+--
+
+ALTER TABLE ONLY public.ruolo
+    ADD CONSTRAINT ruolo_fk1 FOREIGN KEY (id_lavoratore) REFERENCES public.operaio(id_operaio) ON UPDATE CASCADE;
+
+
+--
+-- TOC entry 3207 (class 2606 OID 16659)
+-- Name: ruolo ruolo_fk2; Type: FK CONSTRAINT; Schema: public; Owner: Giorgio
+--
+
+ALTER TABLE ONLY public.ruolo
+    ADD CONSTRAINT ruolo_fk2 FOREIGN KEY (id_cantierelavori) REFERENCES public.cantiere(id_cantiere) ON UPDATE CASCADE;
+
+
+-- Completed on 2022-03-24 00:16:38 CET
+
+--
+-- PostgreSQL database dump complete
+--
+
