@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ChoiceBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="374.0" prefWidth="416.0" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="Boundary.UtilityViewsController.InsertMontaggioSensoreController">
+    <top>
+        <Label alignment="CENTER" contentDisplay="CENTER" prefHeight="25.0" prefWidth="397.0" text="Registrazione di un sensore montato" textAlignment="CENTER" wrapText="true" BorderPane.alignment="CENTER">
+            <BorderPane.margin>
+                <Insets bottom="5.0" top="5.0" />
+            </BorderPane.margin>
+            <font>
+                <Font name="Helvetica" size="16.0" />
+            </font>
+        </Label>
+    </top>
+    <bottom>
+        <AnchorPane prefHeight="43.0" prefWidth="343.0" BorderPane.alignment="CENTER">
+            <children>
+                <Button layoutX="108.0" layoutY="15.0" mnemonicParsing="false" onMouseClicked="#closeView" prefHeight="26.0" prefWidth="90.0" text="Annulla" AnchorPane.bottomAnchor="15.0" AnchorPane.topAnchor="15.0" />
+                <Button fx:id="confermaButton" disable="true" layoutX="218.0" layoutY="15.0" mnemonicParsing="false" onMouseClicked="#registraNuovoMontaggio" prefHeight="26.0" prefWidth="90.0" text="Conferma" AnchorPane.bottomAnchor="15.0" AnchorPane.topAnchor="15.0" />
+            </children>
+        </AnchorPane>
+    </bottom>
+    <center>
+        <AnchorPane BorderPane.alignment="CENTER">
+            <children>
+                <Label layoutX="17.0" layoutY="103.0" prefHeight="35.0" prefWidth="177.0" text="ID Operatore responsabile  * del montaggio " textAlignment="CENTER" wrapText="true" />
+                <ChoiceBox fx:id="areaCantiereChoiceBox" layoutX="208.0" layoutY="17.0" prefHeight="26.0" prefWidth="150.0" />
+                <Label layoutX="165.0" layoutY="262.0" text="I campi contrassegnati con * sono obbligatori">
+                    <font>
+                        <Font size="11.0" />
+                    </font>
+                </Label>
+                <Label layoutX="8.0" layoutY="13.0" prefHeight="34.0" prefWidth="190.0" text="ID Area Cantiere in cui è  * stato effettuato il montaggio    " textAlignment="CENTER" wrapText="true" />
+                <ChoiceBox fx:id="operatoreChoiceBox" disable="true" layoutX="208.0" layoutY="107.0" prefHeight="26.0" prefWidth="150.0" />
+                <Label layoutX="36.0" layoutY="212.0" text="Data del montaggio  *" />
+                <Label layoutX="27.0" layoutY="162.0" text="ID del sensore montato  *" />
+                <Button fx:id="caricaIDButton" layoutX="50.0" layoutY="61.0" mnemonicParsing="false" onMouseClicked="#caricaIdOperai" prefHeight="28.0" prefWidth="317.0" text="Carica identificativi degli Operatori all'interno del cantiere">
+                    <font>
+                        <Font size="11.0" />
+                    </font>
+                </Button>
+            <ChoiceBox fx:id="sensoreChoicheBox" disable="true" layoutX="208.0" layoutY="157.0" prefWidth="150.0" />
+            <DatePicker fx:id="montaggioDatePicker" disable="true" editable="false" layoutX="208.0" layoutY="208.0" prefHeight="26.0" prefWidth="150.0" />
+            </children>
+        </AnchorPane>
+    </center>
+</BorderPane>
